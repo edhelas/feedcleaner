@@ -245,17 +245,14 @@ class Parser {
                 </xsl:stylesheet>
                 ';
 
-            /* Allocation d'un analyseur XSLT */
-            $xp = new XsltProcessor();
-
-            $xsl = new DomDocument;
+            $xsl = new \DomDocument;
             $xsl->loadXML($xslt);
 
-            $xml = new DomDocument;
+            $xml = new \DomDocument;
             $xml->loadHTML($item->content);
 
             
-            $xpath = new DOMXpath($xml);
+            $xpath = new \DOMXpath($xml);
 
             $l = new Link;
             $l->rel  = 'enclosure';
@@ -271,9 +268,9 @@ class Parser {
 
             array_push($item->links, $l);
 
-            $item->author_name = trim((string)$xpath->query('//td[2]/a[1]')->item(0)->nodeValue);
+            //$item->author_name = trim((string)$xpath->query('//td[2]/a[1]')->item(0)->nodeValue);
 
-            $proc = new XSLTProcessor();
+            $proc = new \XSLTProcessor();
 
             // On précise au parseur que l'on veut utiliser des fonctions PHP en XSL
             $proc->registerPHPFunctions();
