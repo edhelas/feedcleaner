@@ -1,0 +1,23 @@
+{
+    "name": "movim/feedcleaner",
+    "version": "0.1.0",
+    "description": "A simple PHP library that clean RSS feeds to Atom 1.0",
+    "keywords": ["rss", "atom", "feed", "clean"],
+    "homepage": "https://github.com/edhelas/feedcleaner",
+    "type": "library",
+    "license": "BSD",
+    "authors": [
+        {
+            "name": "Timothée Jaussoin",
+            "email": "edhelas@movim.eu"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "FeedCleaner\\": "src/FeedCleaner"
+        }
+    },
+    "require": {
+        "php": ">=5.3.0"
+    }
+}
