@@ -10,7 +10,7 @@ To load FeedCleaner in your project just include the library to your composer fi
 ```
 {
     "require": {
-        "movim/modl": "dev-master"
+        "movim/feedcleaner": "dev-master"
     }
 }
 ```
