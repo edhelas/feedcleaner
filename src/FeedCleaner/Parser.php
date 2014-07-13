@@ -146,7 +146,7 @@ class Parser {
                         }
 
                         if($link->getName() == 'category') {
-                            array_push($ent->categories, (string)$link);
+                            array_push($ent->categories, htmlentities((string)$link));
                         }
 
                         if($link->getName() == 'comments') {
@@ -278,6 +278,8 @@ class Parser {
             $proc->importStyleSheet($xsl); 
             $item->content = $proc->transformToXML($xml);
         }
+
+        $this->htmlClean();
     }
 
     /*
@@ -295,6 +297,14 @@ class Parser {
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
+    private function htmlClean() {
+        $this->_channel->title     = htmlentities($this->_channel->title);
+        $this->_channel->subtitle  = htmlentities($this->_channel->subtitle);
+        $this->_channel->link      = htmlentities($this->_channel->link->attributes()->href);
+        
+        $this->_channel->logo      = htmlentities($this->_channel->logo);
+    }
+
     public function generate() {
         header("Content-Type: application/atom+xml; charset=UTF-8");
         header("Last-Modified: " . date("D, d M Y H:i:s", (int)$this->_channel->updated) . " GMT");
@@ -304,8 +314,10 @@ class Parser {
     <title><?php echo $this->_channel->title; ?></title>
     <updated><?php echo date(DATE_ATOM, (int)$this->_channel->updated); ?></updated>
     <link rel="self" href="<?php echo $this->getBaseUri(); ?>"/>
-    
+
+    <?php if($this->_channel->subtitle) { ?>
     <subtitle><?php echo $this->_channel->subtitle; ?></subtitle>
+    <?php } ?>
     <?php if($this->_channel->logo) { ?>
     <logo><?php echo $this->_channel->logo; ?></logo>
     <?php } ?>
