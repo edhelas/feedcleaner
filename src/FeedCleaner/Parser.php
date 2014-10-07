@@ -2,7 +2,9 @@
 
 namespace FeedCleaner;
 
-use FeedCleaner\Feed;
+use FeedCleaner\Structure\Channel;
+use FeedCleaner\Structure\Entry;
+use FeedCleaner\Structure\Link;
 
 class Parser {
     private $_xml;
@@ -300,7 +302,10 @@ class Parser {
     private function htmlClean() {
         $this->_channel->title     = htmlentities($this->_channel->title);
         $this->_channel->subtitle  = htmlentities($this->_channel->subtitle);
-        $this->_channel->link      = htmlentities($this->_channel->link->attributes()->href);
+
+        if(!is_string($this->_channel->link)) {
+            $this->_channel->link      = htmlentities($this->_channel->link->attributes()->href);
+        }
         
         $this->_channel->logo      = htmlentities($this->_channel->logo);
     }
