@@ -66,8 +66,8 @@ class Parser {
             // We have a RSS feed !
             case 'rss' :
             case 'rdfRDF' :
-                $channel->title     = (string)$this->_xml->channel->title;
-                $channel->subtitle  = (string)$this->_xml->channel->description;
+                $channel->title     = html_entity_decode((string)$this->_xml->channel->title);
+                $channel->subtitle  = html_entity_decode((string)$this->_xml->channel->description);
                 $channel->link      = (string)$this->_xml->channel->link;
 
                 if(isset($channel->link))
@@ -103,7 +103,7 @@ class Parser {
 
                 foreach($entries as $entry) {
                     $ent = new Entry;
-                    $ent->title     = (string)$entry->title;
+                    $ent->title     = html_entity_decode((string)$entry->title);
 
                     // We grab the content                    
                     if($this->testElement($entry->contentencoded))
@@ -148,7 +148,7 @@ class Parser {
                         }
 
                         if($link->getName() == 'category') {
-                            array_push($ent->categories, htmlentities((string)$link));
+                            array_push($ent->categories, html_entity_decode((string)$link));
                         }
 
                         if($link->getName() == 'comments') {
@@ -310,49 +310,67 @@ class Parser {
         $this->_channel->logo      = htmlentities($this->_channel->logo);
     }
 
+    private function cleanXML($xml) {
+        if($xml != '') {
+            $doc = new \DOMDocument('1.0');
+            $doc->formatOutput = true;
+            return $doc->saveXML();
+        } else {
+            return '';
+        }
+    }
+
     public function generate() {
         header("Content-Type: application/atom+xml; charset=UTF-8");
         header("Last-Modified: " . date("D, d M Y H:i:s", (int)$this->_channel->updated) . " GMT");
-        ?>
-<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
-    <title><?php echo $this->_channel->title; ?></title>
-    <updated><?php echo date(DATE_ATOM, (int)$this->_channel->updated); ?></updated>
-    <link rel="self" href="<?php echo $this->getBaseUri(); ?>"/>
 
-    <?php if($this->_channel->subtitle) { ?>
-    <subtitle><?php echo $this->_channel->subtitle; ?></subtitle>
-    <?php } ?>
-    <?php if($this->_channel->logo) { ?>
-    <logo><?php echo $this->_channel->logo; ?></logo>
-    <?php } ?>
-    <generator uri="http://launchpad.net/feedcleaner" version="0.1">
-      FeedCleaner
-    </generator>
-    
-    <id>urn:uuid:<?php echo $this->_channel->id; ?></id>
-    <?php foreach($this->_channel->items as $item) { ?>
-    <entry>
-        <title><?php echo $item->title; ?></title>
-        <id>urn:uuid:<?php echo $item->id; ?></id>
-        <updated><?php echo date(DATE_ATOM, (int)$item->updated); ?></updated>
-        <content type="html">
-            <![CDATA[<?php echo $item->content; ?>]]>
-        </content>
+        $xml = '<?xml version="1.0" encoding="utf-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom">
+                <title><![CDATA['.$this->_channel->title.']]></title>
+                <updated>'.date(DATE_ATOM, (int)$this->_channel->updated).'</updated>
+                <link rel="self" href="'.$this->getBaseUri().'"/>';
 
-        <author>
-            <name><?php echo $item->author_name; ?></name>
-        </author>
-        <?php foreach($item->categories as $category) { ?>
-            <category term="<?php echo $category; ?>"/>
-        <?php } ?>
-        <?php foreach($item->links as $link) { ?>
-            <link rel="<?php echo $link->rel; ?>" type="<?php echo $link->type; ?>" href="<?php echo $link->href; ?>"/>
-        <?php } ?>
-        <link rel="alternate" type="text/html" href="<?php echo $item->link; ?>"/>
-    </entry>
-    <?php } ?>
-</feed>
-        <?php
+                if($this->_channel->subtitle) {
+                    $xml .= '<subtitle><![CDATA['.$this->_channel->subtitle.']]></subtitle>';
+                }
+                if($this->_channel->logo) {
+                    $xml .= '<logo>'.$this->_channel->logo.'</logo>';
+                }
+
+            $xml .=  '
+                <generator uri="http://launchpad.net/feedcleaner" version="0.1">
+                  FeedCleaner
+                </generator>
+                
+                <id>urn:uuid:'.$this->_channel->id.'</id>';
+                foreach($this->_channel->items as $item) {
+
+            $xml .='
+                <entry>
+                    <title><![CDATA['.$item->title.']]></title>
+                    <id>urn:uuid:'.$item->id.'</id>
+                    <updated>'.date(DATE_ATOM, (int)$item->updated).'</updated>
+                    <content type="html">
+                        <![CDATA['.$item->content.']]>
+                    </content>
+
+                    <author>
+                        <name>'.$item->author_name.'</name>
+                    </author>';
+                    foreach($item->categories as $category) {
+                        $xml .= '<category term="'.$category.'"/>';
+                    }
+                    foreach($item->links as $link) {
+                        $xml .= '<link rel="'.$link->rel.'" type="'.$link->type.'" href="'.$link->href.'"/>';
+                    }
+
+                    $xml .= '
+                    <link rel="alternate" type="text/html" href="'.htmlspecialchars($item->link, ENT_QUOTES).'"/>
+                </entry>';
+                }
+            $xml .= '
+            </feed>';
+
+        echo $this->cleanXML($xml);
     }
 }
