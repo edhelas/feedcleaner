@@ -355,8 +355,8 @@ class Parser {
         $feed->appendChild($link);
 
         if($this->_channel->subtitle) {
-            $subtitle = $dom->createElement('subtitle', trim($this->_channel->subtitle));
-            $feed->appendChild($subtitle);
+            //$subtitle = $dom->createElement('subtitle', $this->_channel->subtitle);
+            //$feed->appendChild($subtitle);
         }
 
         if($this->_channel->logo) {
@@ -384,7 +384,9 @@ class Parser {
             $updated = $dom->createElement('updated', date(DATE_ATOM, (int)$item->updated));
             $entry->appendChild($updated);
 
-            $content = $dom->createElement('content', $item->content);
+            $content = $dom->createElement('content');
+            $cdata = $dom->createCDATASection($item->content);
+            $content->appendChild($cdata);
             $content->setAttribute('type', 'html');
             $entry->appendChild($content);
 
@@ -394,9 +396,9 @@ class Parser {
             $entry->appendChild($author);
 
             foreach($item->categories as $category) {
-                $category = $dom->createElement('category');
-                $category->setAttribute('term', $category);
-                $entry->appendChild($category);
+                $c = $dom->createElement('category');
+                $c->setAttribute('term', (string)$category);
+                $entry->appendChild($c);
             }
 
             foreach($item->links as $link) {
@@ -411,6 +413,12 @@ class Parser {
 
                 $entry->appendChild($l);
             }
+
+            $l = $dom->createElement('link');
+            $l->setAttribute('rel', 'alternate');
+            $l->setAttribute('type', 'text/html');
+            $l->setAttribute('href', $item->link);
+            $entry->appendChild($l);
 
             $feed->appendChild($entry);
         }
