@@ -338,53 +338,83 @@ class Parser {
         header("Content-Type: application/atom+xml; charset=UTF-8");
         header("Last-Modified: " . date("D, d M Y H:i:s", (int)$this->_channel->updated) . " GMT");
 
-        $xml = '<?xml version="1.0" encoding="utf-8"?>
-            <feed xmlns="http://www.w3.org/2005/Atom">
-                <title><![CDATA['.$this->_channel->title.']]></title>
-                <updated>'.date(DATE_ATOM, (int)$this->_channel->updated).'</updated>
-                <link rel="self" href="'.$this->getBaseUri().'"/>';
+        $dom = new \DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
+        $feed = $dom->createElementNS('http://www.w3.org/2005/Atom', 'feed');
+        $dom->appendChild($feed);
 
-                if($this->_channel->subtitle) {
-                    $xml .= '<subtitle><![CDATA['.$this->_channel->subtitle.']]></subtitle>';
+        $title = $dom->createElement('title', trim($this->_channel->title));
+        $feed->appendChild($title);
+
+        $updated = $dom->createElement('updated', date(DATE_ATOM, (int)$this->_channel->updated));
+        $feed->appendChild($updated);
+
+        $link = $dom->createElement('link');
+        $link->setAttribute('rel', 'self');
+        $link->setAttribute('href', $this->getBaseUri());
+        $feed->appendChild($link);
+
+        if($this->_channel->subtitle) {
+            $subtitle = $dom->createElement('subtitle', trim($this->_channel->subtitle));
+            $feed->appendChild($subtitle);
+        }
+
+        if($this->_channel->logo) {
+            $logo = $dom->createElement('logo', $this->_channel->logo);
+            $feed->appendChild($logo);
+        }
+
+        $generator = $dom->createElement('generator', 'FeedCleaner');
+        $generator->setAttribute('uri', 'https://github.com/edhelas/feedcleaner');
+        $generator->setAttribute('version', '0.2');
+        $feed->appendChild($generator);
+
+        $id = $dom->createElement('id', 'urn:uuid:'.$this->_channel->id);
+        $feed->appendChild($id);
+
+        foreach($this->_channel->items as $item) {
+            $entry = $dom->createElement('entry');
+
+            $title = $dom->createElement('title', $item->title);
+            $entry->appendChild($title);
+
+            $id = $dom->createElement('id', 'urn:uuid:'.$item->id);
+            $entry->appendChild($id);
+
+            $updated = $dom->createElement('updated', date(DATE_ATOM, (int)$item->updated));
+            $entry->appendChild($updated);
+
+            $content = $dom->createElement('content', $item->content);
+            $content->setAttribute('type', 'html');
+            $entry->appendChild($content);
+
+            $author = $dom->createElement('author');
+            $name = $dom->createElement('name', $item->author_name);
+            $author->appendChild($name);
+            $entry->appendChild($author);
+
+            foreach($item->categories as $category) {
+                $category = $dom->createElement('category');
+                $category->setAttribute('term', $category);
+                $entry->appendChild($category);
+            }
+
+            foreach($item->links as $link) {
+                $l = $dom->createElement('link');
+                $l->setAttribute('rel', $link->rel);
+                $l->setAttribute('type', $link->type);
+                $l->setAttribute('href', $link->href);
+
+                if($link->title) {
+                    $l->setAttribute('title', $link->title);
                 }
-                if($this->_channel->logo) {
-                    $xml .= '<logo>'.$this->_channel->logo.'</logo>';
-                }
 
-            $xml .=  '
-                <generator uri="http://launchpad.net/feedcleaner" version="0.1">
-                  FeedCleaner
-                </generator>
+                $entry->appendChild($l);
+            }
 
-                <id>urn:uuid:'.$this->_channel->id.'</id>';
-                foreach($this->_channel->items as $item) {
+            $feed->appendChild($entry);
+        }
 
-            $xml .='
-                <entry>
-                    <title><![CDATA['.$item->title.']]></title>
-                    <id>urn:uuid:'.$item->id.'</id>
-                    <updated>'.date(DATE_ATOM, (int)$item->updated).'</updated>
-                    <content type="html">
-                        <![CDATA['.$item->content.']]>
-                    </content>
-
-                    <author>
-                        <name>'.$item->author_name.'</name>
-                    </author>';
-                    foreach($item->categories as $category) {
-                        $xml .= '<category term="'.$category.'"/>';
-                    }
-                    foreach($item->links as $link) {
-                        $xml .= '<link rel="'.$link->rel.'" type="'.$link->type.'" href="'.$link->href.'"/>';
-                    }
-
-                    $xml .= '
-                    <link rel="alternate" type="text/html" href="'.htmlspecialchars($item->link, ENT_QUOTES).'"/>
-                </entry>';
-                }
-            $xml .= '
-            </feed>';
-
-        echo $this->cleanXML($xml);
+        echo $dom->saveXML();
     }
 }

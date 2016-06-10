@@ -6,4 +6,5 @@ class Link {
     public $rel;
     public $type;
     public $href;
+    public $title;
 }
