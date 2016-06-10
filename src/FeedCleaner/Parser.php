@@ -343,7 +343,9 @@ class Parser {
         $feed = $dom->createElementNS('http://www.w3.org/2005/Atom', 'feed');
         $dom->appendChild($feed);
 
-        $title = $dom->createElement('title', trim($this->_channel->title));
+        $title = $dom->createElement('title');
+        $cdata = $dom->createCDATASection(trim($this->_channel->title));
+        $title->appendChild($cdata);
         $feed->appendChild($title);
 
         $updated = $dom->createElement('updated', date(DATE_ATOM, (int)$this->_channel->updated));
@@ -375,7 +377,9 @@ class Parser {
         foreach($this->_channel->items as $item) {
             $entry = $dom->createElement('entry');
 
-            $title = $dom->createElement('title', $item->title);
+            $title = $dom->createElement('title');
+            $cdata = $dom->createCDATASection($item->title);
+            $title->appendChild($cdata);
             $entry->appendChild($title);
 
             $id = $dom->createElement('id', 'urn:uuid:'.$item->id);
