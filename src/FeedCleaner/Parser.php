@@ -17,26 +17,26 @@ class Parser {
         $this->_xml = simplexml_load_string($xml);
     }
 
-    
+
     private function getBaseUri() {
         $pageURL = 'http';
-        
+
         if(isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
-        
+
         $pageURL .= "://";
-        
+
         if ($_SERVER["SERVER_PORT"] != "80") {
             $pageURL .= $_SERVER["SERVER_NAME"].":".$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"];
         } else {
             $pageURL .= $_SERVER["SERVER_NAME"].$_SERVER["REQUEST_URI"];
         }
-        
+
         return $pageURL;
     }
 
     private function parseLink($link) {
         $l = new Link;
-        
+
         $l->rel     = 'enclosure';
         if(isset($link->attributes()->type))
             $l->type    = $link->attributes()->type;
@@ -61,7 +61,7 @@ class Parser {
 
     public function parse() {
         $channel = new Channel;
-        
+
         switch($this->_xml->getName()) {
             // We have a RSS feed !
             case 'rss' :
@@ -74,7 +74,7 @@ class Parser {
                     $channel->id        = $this->generateUUID($channel->link.$channel->link);
                 else
                     $channel->id        = $this->generateUUID();
-                
+
                 $channel->generator = (string)$this->_xml->channel->generator;
 
                 // We try to get the last feed update
@@ -94,7 +94,7 @@ class Parser {
                     $channel->logo = (string)$this->_xml->channel->atomicon;
                 if($this->_xml->channel->atomlink)
                     $channel->link = (string)$this->_xml->channel->atomlink->attributes()->href;
-                    
+
                 // Well, fu** you RSS
                 if(isset($this->_xml->item))
                     $entries = $this->_xml->item;
@@ -105,7 +105,7 @@ class Parser {
                     $ent = new Entry;
                     $ent->title     = html_entity_decode((string)$entry->title);
 
-                    // We grab the content                    
+                    // We grab the content
                     if($this->testElement($entry->contentencoded))
                         $ent->content = $this->testElement($entry->contentencoded);
                     elseif($this->testElement($entry->content))
@@ -117,11 +117,11 @@ class Parser {
                         $ent->id        = $this->generateUUID((string)$entry->guid);
                     elseif(isset($entry->link))
                         $ent->id        = $this->generateUUID((string)$entry->link);
-                        
+
                     $ent->updated   = strtotime((string)$entry->pubDate);
                     if($ent->updated == false)
                         $ent->updated = strtotime((string)$entry->dcdate);
-                    
+
                     $ent->link      = (string)$entry->link;
 
                     $ent->author_name = (string)$entry->author;
@@ -130,7 +130,7 @@ class Parser {
                         $channel->updated = $ent->updated;
 
                     foreach($entry->children() as $link) {
-                        if(substr($link->getName(), 0, 5) == 'media') {                           
+                        if(substr($link->getName(), 0, 5) == 'media') {
                             switch($link->getName()) {
                                 case 'mediacontent' :
                                     $l = $this->parseLink($link);
@@ -141,7 +141,7 @@ class Parser {
                                     foreach($link->children() as $grouped_link) {
                                         $l = $this->parseLink($grouped_link);
 
-                                        array_push($ent->links, $l);                                        
+                                        array_push($ent->links, $l);
                                     }
                                     break;
                             }
@@ -157,7 +157,7 @@ class Parser {
                             $l->type    = 'text/html';
                             $l->href    = $link->attributes()->url;
                         }
-                        
+
                         if($link->getName() == 'enclosure') {
                             $l = new Link;
 
@@ -167,7 +167,7 @@ class Parser {
 
                             array_push($ent->links, $l);
                         }
-                        
+
                         if(substr($link->getName(), 0, 2) == 'dc') {
                             switch($link->getName()) {
                                 case 'dccreator' :
@@ -175,7 +175,7 @@ class Parser {
                                     break;
                             }
                         }
-                        
+
                     }
 
                     array_push($channel->items, $ent);
@@ -188,30 +188,44 @@ class Parser {
                 $channel->title     = (string)$this->_xml->title;
                 $channel->subtitle  = (string)$this->_xml->subtitle;
                 $channel->link      = (string)$this->_xml->link->attributes()->href;
-                
+
                 $channel->id        = $this->generateUUID($channel->link);
 
                 $channel->generator = (string)$this->_xml->generator;
-                
+
                 $channel->logo      = (string)$this->_xml->logo;
 
                 $channel->updated = strtotime((string)$this->_xml->updated);
-                
+
                 foreach($this->_xml->entry as $entry) {
                     $ent = new Entry;
                     $ent->title     = (string)$entry->title;
                     $ent->content   = (string)$entry->content;
                     if($ent->content == false)
                         $ent->content   = (string)$entry->summary;
-                    
+
                     $ent->id        = $this->generateUUID((string)$entry->id);
                     $ent->updated   = strtotime((string)$entry->updated);
 
                     $ent->author_name = (string)$entry->author->name;
-                    
+
+                    foreach($entry->link as $link) {
+                        $l = new Link;
+
+                        $l->rel   = (string)$link->attributes()->rel;
+                        $l->href  = (string)$link->attributes()->href;
+                        $l->type  = (string)$link->attributes()->type;
+
+                        if($link->attributes()->title) {
+                            $l->title = (string)$link->attributes()->title;
+                        }
+
+                        array_push($ent->links, $l);
+                    }
+
                     array_push($channel->items, $ent);
                 }
-                
+
                 break;
         }
 
@@ -224,12 +238,12 @@ class Parser {
                 '<?xml version="1.0" encoding="UTF-8"?>
                 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
                     <xsl:output method="html" indent="yes" />
-                    
+
                     <xsl:template match="//table">
                         <xsl:apply-templates select="tr"/>
                     </xsl:template>
 
-                    
+
                     <xsl:template match="tr">
                         <a href="{td[1]/a/@href}">
                             <img src="{td[2]/a[2]/@href}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/><br />
@@ -240,7 +254,7 @@ class Parser {
                     <xsl:template match="//div">
                         <xsl:copy-of select="./node()" />
                     </xsl:template>
-                    
+
                     <xsl:template match="a[contains(., \'[link]\')]">
                         <br /><a href="{@href}">Link</a><br />
                     </xsl:template>
@@ -253,7 +267,7 @@ class Parser {
             $xml = new \DomDocument;
             $xml->loadHTML($item->content);
 
-            
+
             $xpath = new \DOMXpath($xml);
 
             $l = new Link;
@@ -262,7 +276,7 @@ class Parser {
             $l->type = 'text/html';
 
             array_push($item->links, $l);
-            
+
             $l = new Link;
             $l->rel  = 'replies';
             $l->href = $xpath->query('//a[3]/@href')->item(0)->value;
@@ -277,7 +291,7 @@ class Parser {
             // On précise au parseur que l'on veut utiliser des fonctions PHP en XSL
             $proc->registerPHPFunctions();
 
-            $proc->importStyleSheet($xsl); 
+            $proc->importStyleSheet($xsl);
             $item->content = $proc->transformToXML($xml);
         }
 
@@ -306,7 +320,7 @@ class Parser {
         if(!is_string($this->_channel->link)) {
             $this->_channel->link      = htmlentities($this->_channel->link->attributes()->href);
         }
-        
+
         $this->_channel->logo      = htmlentities($this->_channel->logo);
     }
 
@@ -341,7 +355,7 @@ class Parser {
                 <generator uri="http://launchpad.net/feedcleaner" version="0.1">
                   FeedCleaner
                 </generator>
-                
+
                 <id>urn:uuid:'.$this->_channel->id.'</id>';
                 foreach($this->_channel->items as $item) {
 
