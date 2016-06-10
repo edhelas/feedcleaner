@@ -418,11 +418,13 @@ class Parser {
                 $entry->appendChild($l);
             }
 
-            $l = $dom->createElement('link');
-            $l->setAttribute('rel', 'alternate');
-            $l->setAttribute('type', 'text/html');
-            $l->setAttribute('href', $item->link);
-            $entry->appendChild($l);
+            if($item->link) {
+                $l = $dom->createElement('link');
+                $l->setAttribute('rel', 'alternate');
+                $l->setAttribute('type', 'text/html');
+                $l->setAttribute('href', $item->link);
+                $entry->appendChild($l);
+            }
 
             $feed->appendChild($entry);
         }
