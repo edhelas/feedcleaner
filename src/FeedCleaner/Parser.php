@@ -187,7 +187,9 @@ class Parser {
             case 'feed' :
                 $channel->title     = (string)$this->_xml->title;
                 $channel->subtitle  = (string)$this->_xml->subtitle;
-                $channel->link      = (string)$this->_xml->link->attributes()->href;
+                if($this->_xml->link) {
+                    $channel->link      = (string)$this->_xml->link->attributes()->href;
+                }
 
                 $channel->id        = $this->generateUUID($channel->link);
 
