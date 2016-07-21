@@ -6,6 +6,8 @@ use FeedCleaner\Structure\Channel;
 use FeedCleaner\Structure\Entry;
 use FeedCleaner\Structure\Link;
 
+use Ramsey\Uuid\Uuid;
+
 class Parser {
     private $_xml;
     private $_channel;
@@ -71,9 +73,9 @@ class Parser {
                 $channel->link      = (string)$this->_xml->channel->link;
 
                 if(isset($channel->link))
-                    $channel->id        = $this->generateUUID($channel->link.$channel->link);
+                    $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->link);
                 else
-                    $channel->id        = $this->generateUUID();
+                    $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->title);
 
                 $channel->generator = (string)$this->_xml->channel->generator;
 
@@ -114,9 +116,10 @@ class Parser {
                         $ent->content = $this->testElement($entry->description);
 
                     if(isset($entry->guid))
-                        $ent->id        = $this->generateUUID((string)$entry->guid);
+                        $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->guid);
                     elseif(isset($entry->link))
-                        $ent->id        = $this->generateUUID((string)$entry->link);
+                        $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->link);
+
 
                     $ent->updated   = strtotime((string)$entry->pubDate);
                     if($ent->updated == false)
@@ -191,7 +194,7 @@ class Parser {
                     $channel->link      = (string)$this->_xml->link->attributes()->href;
                 }
 
-                $channel->id        = $this->generateUUID($channel->link);
+                $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->link);
 
                 $channel->generator = (string)$this->_xml->generator;
 
@@ -206,7 +209,8 @@ class Parser {
                     if($ent->content == false)
                         $ent->content   = (string)$entry->summary;
 
-                    $ent->id        = $this->generateUUID((string)$entry->id);
+                    $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->id);
+
                     $ent->updated   = strtotime((string)$entry->updated);
 
                     $ent->author_name = (string)$entry->author->name;
@@ -298,21 +302,6 @@ class Parser {
         }
 
         $this->htmlClean();
-    }
-
-    /*
-     * Generate a standard UUID
-     */
-    private function generateUUID($string = false) {
-        if($string != false && strlen($string) > 8)
-            $data = strrev($string);
-        else
-            $data = openssl_random_pseudo_bytes(16);
-
-        $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version to 0010
-        $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
-
-        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
     private function htmlClean() {
