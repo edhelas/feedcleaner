@@ -38,6 +38,33 @@ class Parser
         return $pageURL;
     }
 
+    private function getTypeFromPath($path)
+    {
+        $ext = pathinfo($this->removeParams($path), PATHINFO_EXTENSION);
+
+        switch ($ext) {
+            case 'jpeg':
+            case 'jpg':
+                $type = 'image/jpeg';
+                break;
+
+            case 'png':
+                $type = 'image/png';
+                break;
+
+            case 'gif':
+            case 'gifv':
+                $type = 'image/gif';
+                break;
+
+            default:
+                $type = 'text/html';
+                break;
+        }
+
+        return $type;
+    }
+
     private function parseLink($link)
     {
         $l = new Link;
@@ -46,26 +73,7 @@ class Parser
         if(isset($link->attributes()->type)) {
             $l->type    = $link->attributes()->type;
         } else {
-            $infos = pathinfo($this->removeParams($link->attributes()->url));
-
-            switch ($infos['extension']) {
-                case 'jpeg':
-                case 'jpg':
-                    $l->type = 'image/jpeg';
-                    break;
-
-                case 'png':
-                    $l->type = 'image/png';
-                    break;
-
-                case 'gif':
-                    $l->type = 'image/gif';
-                    break;
-
-                default:
-                    $l->type = 'text/html';
-                    break;
-            }
+            $l->type = $this->getTypeFromPath($link->attributes()->url);
         }
 
         $l->href = $link->attributes()->url;
@@ -276,7 +284,7 @@ class Parser
         $this->_channel = $channel;
     }
 
-    public function transform($transformation) {
+    public function transform($transformation = false) {
         foreach($this->_channel->items as $item) {
             $xslt =
                 '<?xml version="1.0" encoding="UTF-8"?>
@@ -317,24 +325,7 @@ class Parser
             if($img->item(0) != null) {
                 $href = $img->item(0)->value;
 
-                $ext = pathinfo($href, PATHINFO_EXTENSION);
-
-                switch($ext) {
-                    case 'png':
-                        $ext = 'image/jpeg';
-                        break;
-                    case 'htm':
-                    case 'html':
-                        $ext = 'text/html';
-                        break;
-                    case 'gif':
-                    case 'gifv':
-                        $ext = 'image/gif';
-                        break;
-                    case 'jpg':
-                    default:
-                        $ext = 'image/jpeg';
-                }
+                $ext = $this->getTypeFromPath($href);
 
                 $l = new Link;
                 $l->rel  = 'enclosure';
