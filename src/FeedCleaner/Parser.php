@@ -8,7 +8,8 @@ use FeedCleaner\Structure\Link;
 
 use Ramsey\Uuid\Uuid;
 
-class Parser {
+class Parser
+{
     private $_xml;
     private $_channel;
 
@@ -20,7 +21,8 @@ class Parser {
     }
 
 
-    private function getBaseUri() {
+    private function getBaseUri()
+    {
         $pageURL = 'http';
 
         if(isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
@@ -36,32 +38,58 @@ class Parser {
         return $pageURL;
     }
 
-    private function parseLink($link) {
+    private function parseLink($link)
+    {
         $l = new Link;
 
         $l->rel     = 'enclosure';
-        if(isset($link->attributes()->type))
+        if(isset($link->attributes()->type)) {
             $l->type    = $link->attributes()->type;
-        else {
-            if($link->attributes()->medium == 'image')
-                $l->type    = 'image/jpeg';
-            else
-                $l->type    = 'text/html';
+        } else {
+            $infos = pathinfo($this->removeParams($link->attributes()->url));
+
+            switch ($infos['extension']) {
+                case 'jpeg':
+                case 'jpg':
+                    $l->type = 'image/jpeg';
+                    break;
+
+                case 'png':
+                    $l->type = 'image/png';
+                    break;
+
+                case 'gif':
+                    $l->type = 'image/gif';
+                    break;
+
+                default:
+                    $l->type = 'text/html';
+                    break;
+            }
         }
 
-        $l->href    = $link->attributes()->url;
+        $l->href = $link->attributes()->url;
 
         return $l;
     }
 
-    private function testElement($element) {
-        if(isset($element) && $element && (string)$element != '')
+    private function testElement($element)
+    {
+        if(isset($element) && $element && (string)$element != '') {
             return (string)$element;
-        else
+        } else {
             return false;
+        }
     }
 
-    public function parse() {
+    private function removeParams($url)
+    {
+        $url = parse_url($url);
+        return $url['scheme'].'://'.$url['host'].$url['path'];
+    }
+
+    public function parse()
+    {
         $channel = new Channel;
 
         switch($this->_xml->getName()) {
@@ -88,38 +116,44 @@ class Parser {
                     $channel->updated = false;
 
                 // We try to grab a logo
-                if(isset($this->_xml->channel->image) && isset($this->_xml->channel->image->url))
-                    $channel->logo = (string)$this->_xml->channel->image->url;
+                if(isset($this->_xml->channel->image) && isset($this->_xml->channel->image->url)) {
+                    $channel->logo = $this->removeParams((string)$this->_xml->channel->image->url);
+                }
 
                 // Atom namespace
-                if($this->_xml->channel->atomicon)
-                    $channel->logo = (string)$this->_xml->channel->atomicon;
-                if($this->_xml->channel->atomlink)
+                if($this->_xml->channel->atomicon) {
+                    $channel->logo = $this->removeParams((string)$this->_xml->channel->atomicon);
+                }
+
+                if($this->_xml->channel->atomlink) {
                     $channel->link = (string)$this->_xml->channel->atomlink->attributes()->href;
+                }
 
                 // Well, fu** you RSS
-                if(isset($this->_xml->item))
+                if(isset($this->_xml->item)) {
                     $entries = $this->_xml->item;
-                else
+                } else {
                     $entries = $this->_xml->channel->item;
+                }
 
                 foreach($entries as $entry) {
                     $ent = new Entry;
                     $ent->title     = html_entity_decode((string)$entry->title);
 
                     // We grab the content
-                    if($this->testElement($entry->contentencoded))
+                    if($this->testElement($entry->contentencoded)) {
                         $ent->content = $this->testElement($entry->contentencoded);
-                    elseif($this->testElement($entry->content))
+                    } elseif($this->testElement($entry->content)) {
                         $ent->content = $this->testElement($entry->content);
-                    elseif($this->testElement($entry->description))
+                    } elseif($this->testElement($entry->description)) {
                         $ent->content = $this->testElement($entry->description);
+                    }
 
-                    if(isset($entry->guid))
+                    if(isset($entry->guid)) {
                         $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->guid);
-                    elseif(isset($entry->link))
+                    } elseif(isset($entry->link)) {
                         $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->link);
-
+                    }
 
                     $ent->updated   = strtotime((string)$entry->pubDate);
                     if($ent->updated == false)
@@ -129,8 +163,9 @@ class Parser {
 
                     $ent->author_name = (string)$entry->author;
 
-                    if($channel->updated == false)
+                    if($channel->updated == false) {
                         $channel->updated = $ent->updated;
+                    }
 
                     foreach($entry->children() as $link) {
                         if(substr($link->getName(), 0, 5) == 'media') {
@@ -198,7 +233,7 @@ class Parser {
 
                 $channel->generator = (string)$this->_xml->generator;
 
-                $channel->logo      = (string)$this->_xml->logo;
+                $channel->logo      = $this->removeParams((string)$this->_xml->logo);
 
                 $channel->updated = strtotime((string)$this->_xml->updated);
 
@@ -400,7 +435,7 @@ class Parser {
                 $l = $dom->createElement('link');
                 $l->setAttribute('rel', $link->rel);
                 $l->setAttribute('type', $link->type);
-                $l->setAttribute('href', $link->href);
+                $l->setAttribute('href', $this->removeParams($link->href));
 
                 if($link->title) {
                     $l->setAttribute('title', $link->title);
@@ -413,7 +448,7 @@ class Parser {
                 $l = $dom->createElement('link');
                 $l->setAttribute('rel', 'alternate');
                 $l->setAttribute('type', 'text/html');
-                $l->setAttribute('href', $item->link);
+                $l->setAttribute('href', $this->removeParams($item->link));
                 $entry->appendChild($l);
             }
 
