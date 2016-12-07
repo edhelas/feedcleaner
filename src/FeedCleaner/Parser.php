@@ -251,17 +251,20 @@ class Parser
                     $ent->author_name = (string)$entry->author->name;
 
                     foreach($entry->link as $link) {
-                        $l = new Link;
+                        if($link->attributes()->rel
+                        && $link->attributes()->type) {
+                            $l = new Link;
 
-                        $l->rel   = (string)$link->attributes()->rel;
-                        $l->href  = (string)$link->attributes()->href;
-                        $l->type  = (string)$link->attributes()->type;
+                            $l->rel   = (string)$link->attributes()->rel;
+                            $l->href  = (string)$link->attributes()->href;
+                            $l->type  = (string)$link->attributes()->type;
 
-                        if($link->attributes()->title) {
-                            $l->title = (string)$link->attributes()->title;
+                            if($link->attributes()->title) {
+                                $l->title = (string)$link->attributes()->title;
+                            }
+
+                            array_push($ent->links, $l);
                         }
-
-                        array_push($ent->links, $l);
                     }
 
                     array_push($channel->items, $ent);
@@ -287,7 +290,7 @@ class Parser
 
                     <xsl:template match="tr">
                         <a href="{td[1]/a/@href}">
-                            <img src="{td[2]/a[2]/@href}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/><br />
+                            <img src="{td[2]/span[1]/a[1]/@href}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/><br />
                             <img src="{td[1]/a/img/@src}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/>
                         </a>
                     </xsl:template>
@@ -308,19 +311,49 @@ class Parser
             $xml = new \DomDocument;
             $xml->loadHTML($item->content);
 
-
             $xpath = new \DOMXpath($xml);
 
-            $l = new Link;
-            $l->rel  = 'enclosure';
-            $l->href = $xpath->query('//a[2]/@href')->item(0)->value;
-            $l->type = 'text/html';
+            $img = $xpath->query('//td[2]/span[1]/a[1]/@href');
+            if($img->item(0) != null) {
+                $href = $img->item(0)->value;
+
+                $ext = pathinfo($href, PATHINFO_EXTENSION);
+
+                switch($ext) {
+                    case 'png':
+                        $ext = 'image/jpeg';
+                        break;
+                    case 'htm':
+                    case 'html':
+                        $ext = 'text/html';
+                        break;
+                    case 'gif':
+                    case 'gifv':
+                        $ext = 'image/gif';
+                        break;
+                    case 'jpg':
+                    default:
+                        $ext = 'image/jpeg';
+                }
+
+                $l = new Link;
+                $l->rel  = 'enclosure';
+                $l->href = $href;
+                $l->type = $ext;
+            }
 
             array_push($item->links, $l);
 
-            $l = new Link;
+            /*$l = new Link;
             $l->rel  = 'replies';
             $l->href = $xpath->query('//a[3]/@href')->item(0)->value;
+            $l->type = 'text/html';
+
+            array_push($item->links, $l);*/
+
+            $l = new Link;
+            $l->rel  = 'alternate';
+            $l->href = $xpath->query('//a[1]/@href')->item(0)->value;
             $l->type = 'text/html';
 
             array_push($item->links, $l);
