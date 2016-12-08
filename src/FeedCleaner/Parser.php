@@ -92,8 +92,15 @@ class Parser
 
     private function removeParams($url)
     {
-        $url = parse_url($url);
-        return $url['scheme'].'://'.$url['host'].$url['path'];
+        if(empty($url)) return $url;
+
+        $parts = parse_url($url);
+
+        if(array_key_exists('scheme', $parts)) {
+            return $parts['scheme'].'://'.$parts['host'].$parts['path'];
+        } else {
+            return $url;
+        }
     }
 
     public function parse()
@@ -331,9 +338,9 @@ class Parser
                 $l->rel  = 'enclosure';
                 $l->href = $href;
                 $l->type = $ext;
-            }
 
-            array_push($item->links, $l);
+                array_push($item->links, $l);
+            }
 
             /*$l = new Link;
             $l->rel  = 'replies';
