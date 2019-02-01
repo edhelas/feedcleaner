@@ -419,7 +419,9 @@ class Parser {
             $entry->appendChild($content);
 
             $author = $dom->createElement('author');
-            $name = $dom->createElement('name', $item->author_name);
+            $name = $dom->createElement('name');
+            $nameContent = $dom->createTextNode($item->author_name);
+            $name->appendChild($nameContent);
             $author->appendChild($name);
             $entry->appendChild($author);
 
