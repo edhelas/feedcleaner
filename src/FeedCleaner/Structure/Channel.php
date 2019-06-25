@@ -2,7 +2,8 @@
 
 namespace FeedCleaner\Structure;
 
-class Channel {
+class Channel
+{
     public $title;
     public $subtitle;
     public $link;
@@ -10,5 +11,5 @@ class Channel {
     public $generator;
     public $updated;
     public $logo;
-    public $items = array();
+    public $items = [];
 }

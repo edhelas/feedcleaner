@@ -15,7 +15,8 @@ class Parser
 
     private $_item;
 
-    public function setXML($xml) {
+    public function setXML($xml)
+    {
         $xml = $content = preg_replace("/(<\/?)(\w+):([^>]*>)/", "$1$2$3", $xml);
         $this->_xml = simplexml_load_string($xml);
     }
@@ -25,7 +26,7 @@ class Parser
     {
         $pageURL = 'http';
 
-        if(isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
+        if (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on") {$pageURL .= "s";}
 
         $pageURL .= "://";
 
@@ -70,7 +71,7 @@ class Parser
         $l = new Link;
 
         $l->rel     = 'enclosure';
-        if(isset($link->attributes()->type)) {
+        if (isset($link->attributes()->type)) {
             $l->type    = $link->attributes()->type;
         } else {
             $l->type = $this->getTypeFromPath($link->attributes()->url);
@@ -83,7 +84,7 @@ class Parser
 
     private function testElement($element)
     {
-        if(isset($element) && $element && (string)$element != '') {
+        if (isset($element) && $element && (string)$element != '') {
             return (string)$element;
         } else {
             return false;
@@ -92,11 +93,11 @@ class Parser
 
     private function removeParams($url)
     {
-        if(empty($url)) return $url;
+        if (empty($url)) return $url;
 
         $parts = parse_url($url);
 
-        if(array_key_exists('scheme', $parts)) {
+        if (array_key_exists('scheme', $parts)) {
             return $parts['scheme'].'://'.$parts['host'].$parts['path'];
         } else {
             return $url;
@@ -115,7 +116,7 @@ class Parser
                 $channel->subtitle  = html_entity_decode((string)$this->_xml->channel->description);
                 $channel->link      = (string)$this->_xml->channel->link;
 
-                if(isset($channel->link))
+                if (isset($channel->link))
                     $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->link);
                 else
                     $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->title);
@@ -124,66 +125,66 @@ class Parser
 
                 // We try to get the last feed update
                 $channel->updated = strtotime((string)$this->_xml->channel->lastBuildDate);
-                if($channel->updated == false)
+                if ($channel->updated == false)
                     $channel->updated = strtotime((string)$this->_xml->channel->pubDate);
 
-                if($channel->updated = strtotime('now'))
+                if ($channel->updated = strtotime('now'))
                     $channel->updated = false;
 
                 // We try to grab a logo
-                if(isset($this->_xml->channel->image) && isset($this->_xml->channel->image->url)) {
+                if (isset($this->_xml->channel->image) && isset($this->_xml->channel->image->url)) {
                     $channel->logo = $this->removeParams((string)$this->_xml->channel->image->url);
                 }
 
                 // Atom namespace
-                if($this->_xml->channel->atomicon) {
+                if ($this->_xml->channel->atomicon) {
                     $channel->logo = $this->removeParams((string)$this->_xml->channel->atomicon);
                 }
 
-                if($this->_xml->channel->atomlink) {
+                if ($this->_xml->channel->atomlink) {
                     $channel->link = (string)$this->_xml->channel->atomlink->attributes()->href;
                 }
 
                 // Well, fu** you RSS
-                if(isset($this->_xml->item)) {
+                if (isset($this->_xml->item)) {
                     $entries = $this->_xml->item;
                 } else {
                     $entries = $this->_xml->channel->item;
                 }
 
-                foreach($entries as $entry) {
+                foreach ($entries as $entry) {
                     $ent = new Entry;
                     $ent->title     = html_entity_decode((string)$entry->title);
 
                     // We grab the content
-                    if($this->testElement($entry->contentencoded)) {
+                    if ($this->testElement($entry->contentencoded)) {
                         $ent->content = $this->testElement($entry->contentencoded);
-                    } elseif($this->testElement($entry->content)) {
+                    } elseif ($this->testElement($entry->content)) {
                         $ent->content = $this->testElement($entry->content);
-                    } elseif($this->testElement($entry->description)) {
+                    } elseif ($this->testElement($entry->description)) {
                         $ent->content = $this->testElement($entry->description);
                     }
 
-                    if(isset($entry->guid)) {
+                    if (isset($entry->guid)) {
                         $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->guid);
-                    } elseif(isset($entry->link)) {
+                    } elseif (isset($entry->link)) {
                         $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->link);
                     }
 
                     $ent->updated   = strtotime((string)$entry->pubDate);
-                    if($ent->updated == false)
+                    if ($ent->updated == false)
                         $ent->updated = strtotime((string)$entry->dcdate);
 
                     $ent->link      = (string)$entry->link;
 
                     $ent->author_name = (string)$entry->author;
 
-                    if($channel->updated == false) {
+                    if ($channel->updated == false) {
                         $channel->updated = $ent->updated;
                     }
 
-                    foreach($entry->children() as $link) {
-                        if(substr($link->getName(), 0, 5) == 'media') {
+                    foreach ($entry->children() as $link) {
+                        if (substr($link->getName(), 0, 5) == 'media') {
                             switch($link->getName()) {
                                 case 'mediacontent' :
                                     $l = $this->parseLink($link);
@@ -191,7 +192,7 @@ class Parser
                                     array_push($ent->links, $l);
                                     break;
                                 case 'mediagroup' :
-                                    foreach($link->children() as $grouped_link) {
+                                    foreach ($link->children() as $grouped_link) {
                                         $l = $this->parseLink($grouped_link);
 
                                         array_push($ent->links, $l);
@@ -200,18 +201,18 @@ class Parser
                             }
                         }
 
-                        if($link->getName() == 'category') {
+                        if ($link->getName() == 'category') {
                             array_push($ent->categories, html_entity_decode((string)$link));
                         }
 
-                        if($link->getName() == 'comments') {
+                        if ($link->getName() == 'comments') {
                             $l = new Link;
                             $l->rel     = 'replies';
                             $l->type    = 'text/html';
                             $l->href    = $link->attributes()->url;
                         }
 
-                        if($link->getName() == 'enclosure') {
+                        if ($link->getName() == 'enclosure') {
                             $l = new Link;
 
                             $l->rel  = 'enclosure';
@@ -221,7 +222,7 @@ class Parser
                             array_push($ent->links, $l);
                         }
 
-                        if(substr($link->getName(), 0, 2) == 'dc') {
+                        if (substr($link->getName(), 0, 2) == 'dc') {
                             switch($link->getName()) {
                                 case 'dccreator' :
                                     $ent->author_name = (string)$link;
@@ -240,7 +241,7 @@ class Parser
             case 'feed' :
                 $channel->title     = (string)$this->_xml->title;
                 $channel->subtitle  = (string)$this->_xml->subtitle;
-                if($this->_xml->link) {
+                if ($this->_xml->link) {
                     $channel->link      = (string)$this->_xml->link->attributes()->href;
                 }
 
@@ -252,11 +253,11 @@ class Parser
 
                 $channel->updated = strtotime((string)$this->_xml->updated);
 
-                foreach($this->_xml->entry as $entry) {
+                foreach ($this->_xml->entry as $entry) {
                     $ent = new Entry;
                     $ent->title     = (string)$entry->title;
                     $ent->content   = (string)$entry->content;
-                    if($ent->content == false)
+                    if ($ent->content == false)
                         $ent->content   = (string)$entry->summary;
 
                     $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->id);
@@ -265,8 +266,8 @@ class Parser
 
                     $ent->author_name = (string)$entry->author->name;
 
-                    foreach($entry->link as $link) {
-                        if($link->attributes()->rel
+                    foreach ($entry->link as $link) {
+                        if ($link->attributes()->rel
                         && $link->attributes()->type) {
                             $l = new Link;
 
@@ -274,7 +275,7 @@ class Parser
                             $l->href  = (string)$link->attributes()->href;
                             $l->type  = (string)$link->attributes()->type;
 
-                            if($link->attributes()->title) {
+                            if ($link->attributes()->title) {
                                 $l->title = (string)$link->attributes()->title;
                             }
 
@@ -291,8 +292,9 @@ class Parser
         $this->_channel = $channel;
     }
 
-    public function transform($transformation = false) {
-        foreach($this->_channel->items as $item) {
+    public function transform($transformation = false)
+    {
+        foreach ($this->_channel->items as $item) {
             $xslt =
                 '<?xml version="1.0" encoding="UTF-8"?>
                 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
@@ -305,7 +307,6 @@ class Parser
 
                     <xsl:template match="tr">
                         <a href="{td[1]/a/@href}">
-                            <img src="{td[2]/span[1]/a[1]/@href}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/><br />
                             <img src="{td[1]/a/img/@src}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/>
                         </a>
                     </xsl:template>
@@ -329,7 +330,7 @@ class Parser
             $xpath = new \DOMXpath($xml);
 
             $img = $xpath->query('//td[2]/span[1]/a[1]/@href');
-            if($img->item(0) != null) {
+            if ($img->item(0) != null) {
                 $href = $img->item(0)->value;
 
                 $ext = $this->getTypeFromPath($href);
@@ -370,19 +371,21 @@ class Parser
         $this->htmlClean();
     }
 
-    private function htmlClean() {
+    private function htmlClean()
+    {
         $this->_channel->title     = htmlentities($this->_channel->title);
         $this->_channel->subtitle  = htmlentities($this->_channel->subtitle);
 
-        if(!is_string($this->_channel->link)) {
+        if (!is_string($this->_channel->link)) {
             $this->_channel->link      = htmlentities($this->_channel->link->attributes()->href);
         }
 
         $this->_channel->logo      = htmlentities($this->_channel->logo);
     }
 
-    private function cleanXML($xml) {
-        if($xml != '') {
+    private function cleanXML($xml)
+    {
+        if ($xml != '') {
             $doc = new \DOMDocument('1.0');
             $doc->formatOutput = true;
             return $doc->saveXML();
@@ -391,7 +394,8 @@ class Parser
         }
     }
 
-    public function generate() {
+    public function generate()
+    {
         header("Content-Type: application/atom+xml; charset=UTF-8");
         header("Last-Modified: " . date("D, d M Y H:i:s", (int)$this->_channel->updated) . " GMT");
 
@@ -413,12 +417,12 @@ class Parser
         $link->setAttribute('href', $this->getBaseUri());
         $feed->appendChild($link);
 
-        if($this->_channel->subtitle) {
+        if ($this->_channel->subtitle) {
             //$subtitle = $dom->createElement('subtitle', $this->_channel->subtitle);
             //$feed->appendChild($subtitle);
         }
 
-        if($this->_channel->logo) {
+        if ($this->_channel->logo) {
             $logo = $dom->createElement('logo', $this->_channel->logo);
             $feed->appendChild($logo);
         }
@@ -431,7 +435,7 @@ class Parser
         $id = $dom->createElement('id', 'urn:uuid:'.$this->_channel->id);
         $feed->appendChild($id);
 
-        foreach($this->_channel->items as $item) {
+        foreach ($this->_channel->items as $item) {
             $entry = $dom->createElement('entry');
 
             $title = $dom->createElement('title');
@@ -458,26 +462,26 @@ class Parser
             $author->appendChild($name);
             $entry->appendChild($author);
 
-            foreach($item->categories as $category) {
+            foreach ($item->categories as $category) {
                 $c = $dom->createElement('category');
                 $c->setAttribute('term', (string)$category);
                 $entry->appendChild($c);
             }
 
-            foreach($item->links as $link) {
+            foreach ($item->links as $link) {
                 $l = $dom->createElement('link');
                 $l->setAttribute('rel', $link->rel);
                 $l->setAttribute('type', $link->type);
                 $l->setAttribute('href', $this->removeParams($link->href));
 
-                if($link->title) {
+                if ($link->title) {
                     $l->setAttribute('title', $link->title);
                 }
 
                 $entry->appendChild($l);
             }
 
-            if($item->link) {
+            if ($item->link) {
                 $l = $dom->createElement('link');
                 $l->setAttribute('rel', 'alternate');
                 $l->setAttribute('type', 'text/html');

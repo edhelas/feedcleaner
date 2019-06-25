@@ -2,7 +2,8 @@
 
 namespace FeedCleaner\Structure;
 
-class Entry {
+class Entry
+{
     public $title;
     public $id;
     public $updated;
@@ -10,7 +11,7 @@ class Entry {
     public $author_id;
     public $content;
     public $link;
-    
-    public $categories = array();
-    public $links = array();
+
+    public $categories = [];
+    public $links = [];
 }

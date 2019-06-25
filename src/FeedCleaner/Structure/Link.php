@@ -2,7 +2,8 @@
 
 namespace FeedCleaner\Structure;
 
-class Link {
+class Link
+{
     public $rel;
     public $type;
     public $href;
