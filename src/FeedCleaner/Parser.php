@@ -97,7 +97,7 @@ class Parser
 
         $parts = parse_url($url);
 
-        if (array_key_exists('scheme', $parts)) {
+        if (array_key_exists('scheme', $parts) && array_key_exists('path', $parts)) {
             return $parts['scheme'].'://'.$parts['host'].$parts['path'];
         } else {
             return $url;
