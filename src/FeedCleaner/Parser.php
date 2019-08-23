@@ -116,20 +116,28 @@ class Parser
                 $channel->subtitle  = html_entity_decode((string)$this->_xml->channel->description);
                 $channel->link      = (string)$this->_xml->channel->link;
 
-                if (isset($channel->link))
+                $url = parse_url($channel->link);
+                if ($url) {
+                    $channel->base = $url['scheme'].'://'.$url['host'];
+                }
+
+                if (isset($channel->link)) {
                     $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->link);
-                else
+                } else {
                     $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->title);
+                }
 
                 $channel->generator = (string)$this->_xml->channel->generator;
 
                 // We try to get the last feed update
                 $channel->updated = strtotime((string)$this->_xml->channel->lastBuildDate);
-                if ($channel->updated == false)
+                if ($channel->updated == false) {
                     $channel->updated = strtotime((string)$this->_xml->channel->pubDate);
+                }
 
-                if ($channel->updated = strtotime('now'))
+                if ($channel->updated = strtotime('now')) {
                     $channel->updated = false;
+                }
 
                 // We try to grab a logo
                 if (isset($this->_xml->channel->image) && isset($this->_xml->channel->image->url)) {
@@ -164,6 +172,8 @@ class Parser
                     } elseif ($this->testElement($entry->description)) {
                         $ent->content = $this->testElement($entry->description);
                     }
+
+                    $ent->content = $this->contentClean($ent->content, $channel->base);
 
                     if (isset($entry->guid)) {
                         $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->guid);
