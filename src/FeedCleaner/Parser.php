@@ -91,17 +91,26 @@ class Parser
         }
     }
 
-    private function removeParams($url)
+    private function removeParams($url, bool $soft = false)
     {
         if (empty($url)) return $url;
 
+        $query = '';
         $parts = parse_url($url);
 
-        if (array_key_exists('scheme', $parts) && array_key_exists('path', $parts)) {
-            return $parts['scheme'].'://'.$parts['host'].$parts['path'];
-        } else {
-            return $url;
+        // With soft, keep the first parameter (often item id)
+        if (isset($parts['query']) && $soft) {
+            $params = [];
+            parse_str($parts['query'], $params);
+
+            if ($soft && count($params) == 1) {
+                $query = '?'.http_build_query($params);
+            }
         }
+
+        return (array_key_exists('scheme', $parts) && array_key_exists('path', $parts))
+            ? $parts['scheme'].'://'.$parts['host'].$parts['path'].$query
+            : $url;
     }
 
     public function parse()
@@ -506,12 +515,14 @@ class Parser
             $content->setAttribute('type', 'html');
             $entry->appendChild($content);
 
-            $author = $dom->createElement('author');
-            $name = $dom->createElement('name');
-            $nameContent = $dom->createTextNode($item->author_name);
-            $name->appendChild($nameContent);
-            $author->appendChild($name);
-            $entry->appendChild($author);
+            if ($item->author_name) {
+                $author = $dom->createElement('author');
+                $name = $dom->createElement('name');
+                $nameContent = $dom->createTextNode($item->author_name);
+                $name->appendChild($nameContent);
+                $author->appendChild($name);
+                $entry->appendChild($author);
+            }
 
             foreach ($item->categories as $category) {
                 $c = $dom->createElement('category');
@@ -536,7 +547,7 @@ class Parser
                 $l = $dom->createElement('link');
                 $l->setAttribute('rel', 'alternate');
                 $l->setAttribute('type', 'text/html');
-                $l->setAttribute('href', $this->removeParams($item->link));
+                $l->setAttribute('href', $this->removeParams($item->link, true));
                 $entry->appendChild($l);
             }
 
