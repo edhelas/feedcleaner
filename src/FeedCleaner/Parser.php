@@ -242,28 +242,30 @@ class Parser
                 $channel->title     = (string)$this->_xml->title;
                 $channel->subtitle  = (string)$this->_xml->subtitle;
                 if ($this->_xml->link) {
-                    $channel->link      = (string)$this->_xml->link->attributes()->href;
+                    $channel->link  = (string)$this->_xml->link->attributes()->href;
+
+                    $url = parse_url($channel->link);
+                    if ($url) {
+                        $channel->base = $url['scheme'].'://'.$url['host'];
+                    }
                 }
 
                 $channel->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, $channel->link);
-
                 $channel->generator = (string)$this->_xml->generator;
-
                 $channel->logo      = $this->removeParams((string)$this->_xml->logo);
-
                 $channel->updated = strtotime((string)$this->_xml->updated);
 
                 foreach ($this->_xml->entry as $entry) {
                     $ent = new Entry;
                     $ent->title     = (string)$entry->title;
                     $ent->content   = (string)$entry->content;
-                    if ($ent->content == false)
+                    if ($ent->content == false) {
                         $ent->content   = (string)$entry->summary;
+                    }
 
+                    $ent->content = $this->contentClean($ent->content, $channel->base);
                     $ent->id        = Uuid::uuid5(Uuid::NAMESPACE_DNS, (string)$entry->id);
-
                     $ent->updated   = strtotime((string)$entry->updated);
-
                     $ent->author_name = (string)$entry->author->name;
 
                     foreach ($entry->link as $link) {
@@ -381,6 +383,45 @@ class Parser
         }
 
         $this->_channel->logo      = htmlentities($this->_channel->logo);
+    }
+
+    private function contentClean($string, $base = null)
+    {
+        $config = \HTMLPurifier_Config::createDefault();
+        $config->set('HTML.Doctype', 'XHTML 1.1');
+        $config->set('Cache.SerializerPath', '/tmp');
+        $config->set('HTML.DefinitionID', 'html5-definitions');
+        $config->set('HTML.DefinitionRev', 1);
+
+        $config->set('URI.Base', $base);
+        $config->set('URI.MakeAbsolute', true);
+
+        $config->set('CSS.AllowedProperties', ['float']);
+        if ($def = $config->maybeGetRawHTMLDefinition()) {
+            $def->addElement('video', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
+              'src' => 'URI',
+              'type' => 'Text',
+              'width' => 'Length',
+              'height' => 'Length',
+              'poster' => 'URI',
+              'preload' => 'Enum#auto,metadata,none',
+              'controls' => 'Bool',
+            ]);
+            $def->addElement('audio', 'Block', 'Optional: (source, Flow) | (Flow, source) | Flow', 'Common', [
+              'src' => 'URI',
+              'preload' => 'Enum#auto,metadata,none',
+              'muted' => 'Bool',
+              'controls' => 'Bool',
+            ]);
+            $def->addElement('source', 'Block', 'Flow', 'Common', [
+              'src' => 'URI',
+              'type' => 'Text',
+            ]);
+        }
+
+        $purifier = new \HTMLPurifier($config);
+        $trimmed = trim($purifier->purify($string));
+        return preg_replace('#(\s*<br\s*/?>)*\s*$#i', '', $trimmed);
     }
 
     private function cleanXML($xml)

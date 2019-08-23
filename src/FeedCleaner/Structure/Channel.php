@@ -12,4 +12,6 @@ class Channel
     public $updated;
     public $logo;
     public $items = [];
+
+    public $base;
 }
