@@ -49,6 +49,10 @@ class Parser
                 $type = 'image/jpeg';
                 break;
 
+            case 'webp':
+                $type = 'image/webp';
+                break;
+
             case 'png':
                 $type = 'image/png';
                 break;
