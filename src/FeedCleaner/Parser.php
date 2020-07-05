@@ -319,6 +319,14 @@ class Parser
 
     public function transform($transformation = false)
     {
+        /**
+            <xsl:template match="tr">
+                <a href="{td[1]/a/@href}">
+                    <img src="{td[1]/a/img/@src}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/>
+                </a>
+            </xsl:template>
+         */
+
         foreach ($this->_channel->items as $item) {
             $xslt =
                 '<?xml version="1.0" encoding="UTF-8"?>
@@ -327,13 +335,6 @@ class Parser
 
                     <xsl:template match="//table">
                         <xsl:apply-templates select="tr"/>
-                    </xsl:template>
-
-
-                    <xsl:template match="tr">
-                        <a href="{td[1]/a/@href}">
-                            <img src="{td[1]/a/img/@src}" alt="{td[1]/a/img/@alt}" title="{td[1]/a/img/@title}"/>
-                        </a>
                     </xsl:template>
 
                     <xsl:template match="//div">
