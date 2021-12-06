@@ -197,6 +197,8 @@ class Parser
                     $ent->updated   = strtotime((string)$entry->pubDate);
                     if ($ent->updated == false)
                         $ent->updated = strtotime((string)$entry->dcdate);
+                    if ($ent->updated == false)
+                        $ent->updated = strtotime((string)$entry->dccreated);
 
                     $ent->link      = (string)$entry->link;
 
