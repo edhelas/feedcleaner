@@ -5,7 +5,7 @@
     "keywords": ["rss", "atom", "feed", "clean"],
     "homepage": "https://github.com/edhelas/feedcleaner",
     "type": "library",
-    "license": "BSD",
+    "license": "BSD-3-Clause",
     "authors": [
         {
             "name": "Timothée Jaussoin",
