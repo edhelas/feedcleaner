@@ -484,6 +484,11 @@ class Parser
         }
     }
 
+    private function trimAndLineUp(string $string): string
+    {
+        return str_replace(["\r", "\n"], ' ', trim($string));
+    }
+
     public function generate()
     {
         header("Content-Type: application/atom+xml; charset=UTF-8");
@@ -495,7 +500,7 @@ class Parser
         $dom->appendChild($feed);
 
         $title = $dom->createElement('title');
-        $cdata = $dom->createCDATASection(trim($this->_channel->title));
+        $cdata = $dom->createCDATASection($this->trimAndLineUp($this->_channel->title));
         $title->appendChild($cdata);
         $feed->appendChild($title);
 
@@ -529,7 +534,8 @@ class Parser
             $entry = $dom->createElement('entry');
 
             $title = $dom->createElement('title');
-            $cdata = $dom->createCDATASection($item->title ?? trim($this->_channel->title) . ' - ' . date(DATE_ATOM, (int)$item->updated));
+            $cdata = $dom->createCDATASection($item->title
+                ?? $this->trimAndLineUp($this->_channel->title) . ' - ' . date('Y-m-d H:i', (int)$item->updated));
             $title->appendChild($cdata);
             $entry->appendChild($title);
 
