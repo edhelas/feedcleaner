@@ -4,14 +4,14 @@ namespace FeedCleaner\Structure;
 
 class Entry
 {
-    public $title;
-    public $id;
+    public ?string $title = null;
+    public ?string $id = null;
     public $updated;
-    public $author_name;
-    public $author_id;
-    public $content;
-    public $link;
+    public ?string $author_name = null;
+    public ?string $author_id = null;
+    public ?string $content = null;
+    public ?string $link = null;
 
-    public $categories = [];
-    public $links = [];
+    public array $categories = [];
+    public array $links = [];
 }
